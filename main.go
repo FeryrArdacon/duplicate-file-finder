@@ -13,6 +13,7 @@ import (
 type Params struct {
 	StartDir        string
 	IncludeAllFiles bool
+	HumanReadable   bool
 }
 
 func main() {
@@ -28,7 +29,7 @@ func main() {
 	}
 
 	iterateFiles(params.StartDir, fileHashes, params)
-	output(fileHashes)
+	output(fileHashes, params.HumanReadable)
 }
 
 func getParams() (Params, error) {
@@ -50,6 +51,10 @@ func getParams() (Params, error) {
 
 		if containsParam(arg, "a") {
 			params.IncludeAllFiles = true
+		}
+
+		if containsParam(arg, "h") {
+			params.HumanReadable = true
 		}
 	}
 
@@ -93,16 +98,22 @@ func getHashForFile(filePath string) []byte {
 	return hashSha256.Sum(nil)
 }
 
-func output(fileHashes map[string][]string) {
+func output(fileHashes map[string][]string, humanReadable bool) {
 	for hash, filePaths := range fileHashes {
 		if len(filePaths) < 2 {
 			continue
 		}
 
-		fmt.Printf("=== %s ===\n", hash)
-		for _, file := range filePaths {
-			fmt.Println(file)
+		if humanReadable {
+			fmt.Printf("=== %s ===\n", hash)
+			for _, file := range filePaths {
+				fmt.Println(file)
+			}
+			fmt.Print("=========\n\n")
+		} else {
+			for _, file := range filePaths {
+				fmt.Println(hash, file)
+			}
 		}
-		fmt.Print("=========\n\n")
 	}
 }
