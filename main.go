@@ -12,6 +12,7 @@ import (
 
 type Params struct {
 	StartDir        string
+	Help            bool
 	IncludeAllFiles bool
 	HumanReadable   bool
 }
@@ -19,13 +20,16 @@ type Params struct {
 func main() {
 	fileHashes := make(map[string][]string)
 
-	if len(os.Args) < 2 {
-		log.Fatalln("can you give me one directory path, please? with the option \"-a\" you can include hidden files to the duplicate check.")
-	}
-
 	params, err := getParams()
 	if err != nil {
 		log.Fatalln(err)
+	}
+
+	if params.Help {
+		log.Println("you can give one directory path as parameter." +
+			"\nwith the option \"-a\" you can include hidden files to the duplicate check." +
+			"\nwith the option \"-h\" the output will be formatted human readable.")
+		return
 	}
 
 	iterateFiles(params.StartDir, fileHashes, params)
@@ -42,6 +46,11 @@ func getParams() (Params, error) {
 	}
 
 	for _, arg := range os.Args[1:] {
+		if arg == "--help" {
+			params.Help = true
+			return params, nil
+		}
+
 		if !strings.HasPrefix(arg, "-") && params.StartDir == "" {
 			params.StartDir = arg
 		} else if !strings.HasPrefix(arg, "-") && params.StartDir != "" {
@@ -56,6 +65,10 @@ func getParams() (Params, error) {
 		if containsParam(arg, "h") {
 			params.HumanReadable = true
 		}
+	}
+
+	if params.StartDir == "" {
+		params.StartDir = "."
 	}
 
 	return params, nil
@@ -74,7 +87,7 @@ func iterateFiles(dirPath string, fileHashes map[string][]string, params Params)
 
 		filePath := filepath.Join(dirPath, file.Name())
 		if file.IsDir() {
-			iterateFiles(filepath.Join(filePath), fileHashes, params)
+			iterateFiles(filePath, fileHashes, params)
 			continue
 		}
 
@@ -105,14 +118,14 @@ func output(fileHashes map[string][]string, humanReadable bool) {
 		}
 
 		if humanReadable {
-			fmt.Printf("=== %s ===\n", hash)
+			log.Printf("=== %s ===\n", hash)
 			for _, file := range filePaths {
-				fmt.Println(file)
+				log.Println(file)
 			}
-			fmt.Print("=========\n\n")
+			log.Print("=========\n\n")
 		} else {
 			for _, file := range filePaths {
-				fmt.Println(hash, file)
+				log.Println(hash, file)
 			}
 		}
 	}
